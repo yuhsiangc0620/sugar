@@ -47,6 +47,8 @@ npm run setup:notion
 
 The script creates or validates the three Notion data sources and prints the data source IDs to place in `.env.local`.
 
+For deployment, copy the same Notion variables into Vercel Project Settings. See `docs/vercel-env.md`.
+
 ## API Contract
 
 - `POST /api/sound-log`
