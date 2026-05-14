@@ -1,0 +1,43 @@
+import { NextResponse } from "next/server";
+import { rememberCandyEvent } from "@/lib/sugar/memory-store";
+import { candyEventSchema } from "@/lib/sugar/validation";
+import { writeCandyEventToNotion } from "@/lib/sugar/notion";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+export async function POST(request: Request) {
+  const parsed = candyEventSchema.safeParse(await request.json().catch(() => null));
+
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid candy event", issues: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
+  }
+
+  const event = rememberCandyEvent({
+    deviceId: parsed.data.device_id,
+    type: parsed.data.event_type,
+    timestamp: parsed.data.timestamp ?? new Date().toISOString(),
+  });
+  let persistedToNotion = false;
+
+  try {
+    persistedToNotion = await writeCandyEventToNotion(event);
+  } catch (error) {
+    console.warn("SUGAR notion candy-event write failed", error);
+  }
+
+  return NextResponse.json(
+    {
+      event: {
+        device_id: event.deviceId,
+        event_type: event.type,
+        timestamp: event.timestamp,
+      },
+      persistedToNotion,
+    },
+    { status: 201 },
+  );
+}
