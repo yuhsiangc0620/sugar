@@ -58,6 +58,7 @@ type NotionTargetStatus = {
 type NotionWriteResponse = {
   ok: boolean;
   skipped: boolean;
+  parentType?: "data_source_id" | "database_id";
   reason?: string;
   error?: string;
   code?: string;
@@ -625,7 +626,7 @@ function formatNotionMessage(label: string, notion?: NotionWriteResponse): strin
   }
 
   return notion.ok
-    ? `${label} 已寫入 Notion`
+    ? `${label} 已寫入 Notion (${notion.parentType ?? "notion"})`
     : notion.skipped
       ? `${label} 未寫入：${notion.reason}`
       : `${label} 寫入失敗：${notion.code ?? notion.error ?? "unknown"}`;

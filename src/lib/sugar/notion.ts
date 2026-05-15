@@ -6,7 +6,7 @@ import type { CandyEvent, DailySummary, SoundLog } from "./types";
 type CreatePageArgs = Parameters<Client["pages"]["create"]>[0];
 type CreateDatabaseArgs = Parameters<Client["databases"]["create"]>[0];
 export type NotionWriteResult =
-  | { ok: true; skipped: false; target: NotionTargetStatus }
+  | { ok: true; skipped: false; target: NotionTargetStatus; parentType: "data_source_id" | "database_id" }
   | { ok: false; skipped: true; target: NotionTargetStatus; reason: string }
   | { ok: false; skipped: false; target: NotionTargetStatus; error: string; code?: string };
 
@@ -53,8 +53,8 @@ export async function writeSoundLogToNotion(log: SoundLog): Promise<NotionWriteR
   }
 
   try {
-    await client.pages.create(soundLogPage(dataSourceId, log));
-    return { ok: true, skipped: false, target };
+    const parentType = await createPageWithFallbackParent(client, soundLogPage(dataSourceId, log));
+    return { ok: true, skipped: false, target, parentType };
   } catch (error) {
     return notionWriteError(target, error);
   }
@@ -75,8 +75,11 @@ export async function writeCandyEventToNotion(event: CandyEvent): Promise<Notion
   }
 
   try {
-    await client.pages.create(candyEventPage(dataSourceId, event));
-    return { ok: true, skipped: false, target };
+    const parentType = await createPageWithFallbackParent(
+      client,
+      candyEventPage(dataSourceId, event),
+    );
+    return { ok: true, skipped: false, target, parentType };
   } catch (error) {
     return notionWriteError(target, error);
   }
@@ -97,8 +100,11 @@ export async function writeDailySummaryToNotion(summary: DailySummary): Promise<
   }
 
   try {
-    await client.pages.create(dailySummaryPage(dataSourceId, summary));
-    return { ok: true, skipped: false, target };
+    const parentType = await createPageWithFallbackParent(
+      client,
+      dailySummaryPage(dataSourceId, summary),
+    );
+    return { ok: true, skipped: false, target, parentType };
   } catch (error) {
     return notionWriteError(target, error);
   }
@@ -424,6 +430,44 @@ function option(
   color: "blue" | "gray" | "green" | "orange" | "pink" | "purple" | "red" | "yellow",
 ) {
   return { name, color };
+}
+
+async function createPageWithFallbackParent(
+  client: Client,
+  payload: CreatePageArgs,
+): Promise<"data_source_id" | "database_id"> {
+  try {
+    await client.pages.create(payload);
+    return "data_source_id";
+  } catch (error) {
+    if (!isNotionObjectNotFound(error) || !isDataSourceParent(payload.parent)) {
+      throw error;
+    }
+
+    await client.pages.create({
+      ...payload,
+      parent: { database_id: payload.parent.data_source_id },
+    } as CreatePageArgs);
+    return "database_id";
+  }
+}
+
+function isDataSourceParent(parent: CreatePageArgs["parent"]): parent is { data_source_id: string } {
+  return (
+    typeof parent === "object" &&
+    parent !== null &&
+    "data_source_id" in parent &&
+    typeof parent.data_source_id === "string"
+  );
+}
+
+function isNotionObjectNotFound(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "object_not_found"
+  );
 }
 
 function notionWriteError(target: NotionTargetStatus, error: unknown): NotionWriteResult {
