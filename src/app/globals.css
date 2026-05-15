@@ -74,6 +74,7 @@ button:disabled {
 }
 
 .sugar-hero,
+.sound-flow-stage,
 .sugar-grid,
 .reflection-band,
 .feedback-band {
@@ -82,12 +83,12 @@ button:disabled {
 }
 
 .sugar-hero {
-  min-height: 58vh;
+  min-height: 42vh;
   display: grid;
   grid-template-columns: minmax(0, 0.92fr) minmax(280px, 0.72fr);
   align-items: center;
   gap: 48px;
-  padding: 58px 0 28px;
+  padding: 58px 0 18px;
 }
 
 .sugar-logo {
@@ -164,7 +165,7 @@ button:disabled {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
   gap: 14px;
-  padding: 14px 0 24px;
+  padding: 18px 0 24px;
 }
 
 .panel {
@@ -182,6 +183,28 @@ button:disabled {
 
 .sound-flow-panel {
   grid-column: 1 / -1;
+}
+
+.sound-flow-stage {
+  padding: 0 0 18px;
+}
+
+.sound-flow-stage .sound-flow-panel {
+  position: relative;
+  overflow: hidden;
+  padding: 22px;
+  background:
+    linear-gradient(120deg, rgba(255, 252, 242, 0.9), rgba(255, 239, 217, 0.6)),
+    var(--paper);
+}
+
+.sound-flow-stage .sound-flow-panel::before {
+  content: "";
+  position: absolute;
+  inset: auto -8% -55% 32%;
+  height: 160px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(234, 160, 200, 0.28), transparent 68%);
 }
 
 .panel-heading,
@@ -368,6 +391,10 @@ button:disabled {
     );
 }
 
+.sound-flow-stage .sound-flow {
+  min-height: clamp(168px, 23vh, 240px);
+}
+
 .sound-flow::after {
   content: "";
   position: absolute;
@@ -390,7 +417,7 @@ button:disabled {
   min-width: 12px;
   border: 0;
   border-left: 1px solid rgba(255, 255, 255, 0.46);
-  background: color-mix(in srgb, var(--segment-color, var(--soft-pink)) 62%, transparent);
+  background: color-mix(in srgb, var(--segment-color, var(--soft-pink)) 76%, #fff9eb 24%);
   opacity: 0;
   transform-origin: left center;
   animation: soundGrow 4.8s ease var(--segment-delay, 0ms) both;
@@ -412,7 +439,7 @@ button:disabled {
   aspect-ratio: 1;
   border-radius: 48% 52% 44% 56% / 58% 38% 62% 42%;
   background: var(--segment-color, var(--soft-pink));
-  opacity: 0.55;
+  opacity: 0.72;
   transform: translate(-50%, -50%);
   animation: tinyBreath 5.2s ease-in-out infinite;
 }
@@ -680,6 +707,7 @@ button:disabled {
 
 @media (max-width: 900px) {
   .sugar-hero,
+  .sound-flow-stage,
   .sugar-grid,
   .reflection-band,
   .feedback-band {
@@ -704,6 +732,7 @@ button:disabled {
 
 @media (max-width: 620px) {
   .sugar-hero,
+  .sound-flow-stage,
   .sugar-grid,
   .reflection-band,
   .feedback-band {

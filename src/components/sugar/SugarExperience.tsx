@@ -330,6 +330,14 @@ export function SugarExperience() {
         </div>
       </section>
 
+      <section className="sound-flow-stage" aria-label="聲音流核心">
+        <SoundFlowPanel
+          soundFlow={soundFlow}
+          recentSoundLabels={recentSoundLabels}
+          onUnlock={() => setIsReflectionUnlocked(true)}
+        />
+      </section>
+
       <section className="sugar-grid" aria-label="SUGAR controls and state">
         <div className="panel day-panel">
           <div className="panel-heading">
@@ -432,61 +440,6 @@ export function SugarExperience() {
             <Metric label="留下" value={aggregate.acceptedCount.toString()} />
           </div>
         </div>
-
-        <div className="panel sound-flow-panel">
-          <div className="panel-heading">
-            <span>聲音流</span>
-            <span>{soundFlow.length}</span>
-          </div>
-          <div className="sound-flow-copy">
-            <p>聲音從左邊慢慢長出來，最後被你收成一張糖紙。</p>
-            <button
-              className="sugar-button primary"
-              type="button"
-              disabled={soundFlow.length === 0}
-              onClick={() => setIsReflectionUnlocked(true)}
-              data-testid="unlock-reflection"
-            >
-              <Gift size={18} />
-              <span>把今日聲音包成糖紙</span>
-            </button>
-          </div>
-          <div className="sound-flow" aria-label="聲音時間軸視覺化">
-            {soundFlow.length === 0 ? (
-              <div className="sound-flow-empty">今天還很柔軟，尚未留下痕跡。</div>
-            ) : (
-              soundFlow.map((log, index) => (
-                <button
-                  className="sound-segment"
-                  key={`${log.timestamp}-${index}`}
-                  type="button"
-                  onClick={() => setIsReflectionUnlocked(true)}
-                  style={
-                    {
-                      "--segment-color": soundLabelColors[log.label],
-                      "--segment-grow": Math.max(1, Math.round(log.durationSeconds)),
-                      "--segment-delay": `${index * 120}ms`,
-                    } as CSSProperties
-                  }
-                  title={`${formatTime(log.timestamp)} ${soundLabelCopy[log.label]}`}
-                >
-                  <span className="sound-pulse" />
-                </button>
-              ))
-            )}
-          </div>
-          <div className="sound-flow-labels" aria-label="最近的聲音">
-            {recentSoundLabels.length === 0 ? (
-              <span>等待第一段聲音</span>
-            ) : (
-              recentSoundLabels.map((log) => (
-                <span key={log.timestamp}>
-                  {formatTime(log.timestamp)} · {soundLabelCopy[log.label]}
-                </span>
-              ))
-            )}
-          </div>
-        </div>
       </section>
 
       {isReflectionUnlocked ? (
@@ -571,6 +524,73 @@ function Metric({ label, value }: { label: string; value: string }) {
     <div className="metric">
       <span>{label}</span>
       <strong>{value}</strong>
+    </div>
+  );
+}
+
+function SoundFlowPanel({
+  soundFlow,
+  recentSoundLabels,
+  onUnlock,
+}: {
+  soundFlow: SoundLog[];
+  recentSoundLabels: SoundLog[];
+  onUnlock: () => void;
+}) {
+  return (
+    <div className="panel sound-flow-panel">
+      <div className="panel-heading">
+        <span>聲音流</span>
+        <span>{soundFlow.length}</span>
+      </div>
+      <div className="sound-flow-copy">
+        <p>聲音從左邊慢慢長出來，最後被你收成一張糖紙。</p>
+        <button
+          className="sugar-button primary"
+          type="button"
+          disabled={soundFlow.length === 0}
+          onClick={onUnlock}
+          data-testid="unlock-reflection"
+        >
+          <Gift size={18} />
+          <span>把今日聲音包成糖紙</span>
+        </button>
+      </div>
+      <div className="sound-flow" aria-label="聲音時間軸視覺化">
+        {soundFlow.length === 0 ? (
+          <div className="sound-flow-empty">今天還很柔軟，尚未留下痕跡。</div>
+        ) : (
+          soundFlow.map((log, index) => (
+            <button
+              className="sound-segment"
+              key={`${log.timestamp}-${index}`}
+              type="button"
+              onClick={onUnlock}
+              style={
+                {
+                  "--segment-color": soundLabelColors[log.label],
+                  "--segment-grow": Math.max(1, Math.round(log.durationSeconds)),
+                  "--segment-delay": `${index * 120}ms`,
+                } as CSSProperties
+              }
+              title={`${formatTime(log.timestamp)} ${soundLabelCopy[log.label]}`}
+            >
+              <span className="sound-pulse" />
+            </button>
+          ))
+        )}
+      </div>
+      <div className="sound-flow-labels" aria-label="最近的聲音">
+        {recentSoundLabels.length === 0 ? (
+          <span>等待第一段聲音</span>
+        ) : (
+          recentSoundLabels.map((log) => (
+            <span key={log.timestamp}>
+              {formatTime(log.timestamp)} · {soundLabelCopy[log.label]}
+            </span>
+          ))
+        )}
+      </div>
     </div>
   );
 }
