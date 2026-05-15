@@ -29,7 +29,7 @@ export async function POST(request: Request) {
   const correctedSummary =
     parsed.data.accepted || !parsed.data.feedback?.trim()
       ? existing.aiSummary
-      : `${existing.aiSummary}\n\n使用者補充：${parsed.data.feedback.trim()}`;
+      : parsed.data.feedback.trim();
 
   if (!parsed.data.accepted && parsed.data.feedback) {
     appendPromptMemory(parsed.data.feedback);

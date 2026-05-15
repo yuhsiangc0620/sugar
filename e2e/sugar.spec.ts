@@ -7,6 +7,7 @@ test("SUGAR demo flow creates a day summary and accepts feedback", async ({ page
   await page.getByTestId("demo-sound").click();
   await page.getByTestId("dispense-candy").click();
   await page.getByTestId("return-candy").click();
+  await page.getByTestId("unlock-reflection").click();
   await page.getByTestId("run-summary").click();
   await expect(page.getByTestId("open-candy")).toBeEnabled();
   await page.getByTestId("open-candy").click();

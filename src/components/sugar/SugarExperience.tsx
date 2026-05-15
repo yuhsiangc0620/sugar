@@ -12,7 +12,6 @@ import {
   Send,
   Sparkles,
   Volume2,
-  X,
 } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -27,14 +26,6 @@ import type {
   SoundLog,
 } from "@/lib/sugar/types";
 import { useAudioClassifier } from "@/hooks/useAudioClassifier";
-
-type TimelineItem = {
-  id: string;
-  kind: "sound" | "candy" | "summary" | "feedback";
-  title: string;
-  detail: string;
-  time: string;
-};
 
 type SnapshotResponse = {
   date: string;
@@ -87,15 +78,15 @@ export function SugarExperience() {
   const [sessionId] = useState(() => createSessionId());
   const [soundLogs, setSoundLogs] = useState<SoundLog[]>([]);
   const [candyEvents, setCandyEvents] = useState<CandyEvent[]>([]);
-  const [timeline, setTimeline] = useState<TimelineItem[]>([]);
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [flavor, setFlavor] = useState<CandyFlavor>({
     name: "蜜桃漂浮糖",
     color: "#f8a65d",
     note: "今天的聲音輕輕混在一起。",
   });
-  const [feedback, setFeedback] = useState("");
+  const [noteDraft, setNoteDraft] = useState("");
   const [isCandyOpen, setIsCandyOpen] = useState(false);
+  const [isReflectionUnlocked, setIsReflectionUnlocked] = useState(false);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summaryStatus, setSummaryStatus] = useState<string | null>(null);
   const [notionStatus, setNotionStatus] = useState<SnapshotResponse["notion"] | null>(null);
@@ -108,18 +99,8 @@ export function SugarExperience() {
   );
   const activeLabel = aggregate.topSoundLabel ?? "silence";
   const activeColor = flavor.color || soundLabelColors[activeLabel];
-
-  const pushTimeline = useCallback((item: Omit<TimelineItem, "id">) => {
-    setTimeline((current) =>
-      [
-        {
-          ...item,
-          id: crypto.randomUUID(),
-        },
-        ...current,
-      ].slice(0, 12),
-    );
-  }, []);
+  const soundFlow = useMemo(() => soundLogs.slice(-32), [soundLogs]);
+  const recentSoundLabels = useMemo(() => soundLogs.slice(-7).reverse(), [soundLogs]);
 
   const recordSoundLog = useCallback(
     async (
@@ -149,14 +130,6 @@ export function SugarExperience() {
       };
 
       setSoundLogs((current) => [...current, log]);
-      pushTimeline({
-        kind: "sound",
-        title: soundLabelCopy[label],
-        detail: `${Math.round(confidence * 100)}% confidence · ${Math.round(
-          log.durationSeconds,
-        )} 秒`,
-        time: formatTime(timestamp),
-      });
 
       const response = await fetch("/api/sound-log", {
         method: "POST",
@@ -166,7 +139,7 @@ export function SugarExperience() {
       const data = (await response.json()) as { notion?: NotionWriteResponse };
       setNotionMessage(formatNotionMessage("Sound Logs", data.notion));
     },
-    [pushTimeline, sessionId],
+    [sessionId],
   );
 
   const audio = useAudioClassifier({
@@ -197,30 +170,9 @@ export function SugarExperience() {
 
       if (snapshot.dailySummary) {
         setSummary(snapshot.dailySummary);
+        setNoteDraft(snapshot.dailySummary.correctedSummary ?? snapshot.dailySummary.aiSummary);
+        setIsReflectionUnlocked(true);
       }
-
-      const soundItems = snapshot.recentSoundLogs.slice(-4).map<TimelineItem>((log) => ({
-        id: `sound-${log.timestamp}`,
-        kind: "sound",
-        title: soundLabelCopy[log.label],
-        detail: `${Math.round(log.confidence * 100)}% confidence · ${Math.round(
-          log.durationSeconds,
-        )} 秒`,
-        time: formatTime(log.timestamp),
-      }));
-      const candyItems = snapshot.recentCandyEvents.slice(-4).map<TimelineItem>((event) => ({
-        id: `candy-${event.timestamp}-${event.type}`,
-        kind: "candy",
-        title: event.type === "dispensed" ? "糖果吐出" : "糖果退回",
-        detail: event.deviceId,
-        time: formatTime(event.timestamp),
-      }));
-
-      setTimeline((current) =>
-        current.length > 0
-          ? current
-          : [...soundItems, ...candyItems].sort((a, b) => (a.time > b.time ? -1 : 1)),
-      );
     }
 
     void loadSnapshot();
@@ -249,12 +201,6 @@ export function SugarExperience() {
     };
 
     setCandyEvents((current) => [...current, event]);
-    pushTimeline({
-      kind: "candy",
-      title: type === "dispensed" ? "糖果吐出" : "糖果退回",
-      detail: type === "dispensed" ? "servo command simulated" : "infrared return simulated",
-      time: formatTime(timestamp),
-    });
 
     const response = await fetch("/api/device/event", {
       method: "POST",
@@ -302,13 +248,8 @@ export function SugarExperience() {
       };
 
       setSummary(nextSummary);
+      setNoteDraft(data.aiSummary);
       setFlavor(data.flavor);
-      pushTimeline({
-        kind: "summary",
-        title: "今晚糖果生成",
-        detail: data.flavor.name,
-        time: formatTime(new Date().toISOString()),
-      });
       setNotionMessage(formatNotionMessage("Daily Summary", data.notion));
     } catch {
       setSummaryStatus("今晚的糖果暫時沒有成形。");
@@ -317,10 +258,13 @@ export function SugarExperience() {
     }
   }
 
-  async function submitFeedback(accepted: boolean) {
+  async function saveNote(acceptedOverride?: boolean) {
     if (!summary) {
       return;
     }
+
+    const trimmedNote = noteDraft.trim();
+    const accepted = acceptedOverride ?? trimmedNote === summary.aiSummary.trim();
 
     const response = await fetch("/api/daily-summary/feedback", {
       method: "POST",
@@ -329,7 +273,7 @@ export function SugarExperience() {
         date,
         userName,
         accepted,
-        feedback: accepted ? undefined : feedback,
+        feedback: accepted ? undefined : trimmedNote,
       }),
     });
 
@@ -347,16 +291,11 @@ export function SugarExperience() {
     setSummary({
       ...summary,
       accepted,
-      userFeedback: feedback,
+      userFeedback: accepted ? undefined : trimmedNote,
       correctedSummary: data.correctedSummary,
     });
+    setNoteDraft(data.correctedSummary);
     setSummaryStatus(data.memoryUpdated ? "SUGAR 記住了這次修正。" : "今天被確認了。");
-    pushTimeline({
-      kind: "feedback",
-      title: accepted ? "使用者確認" : "使用者修正",
-      detail: accepted ? "這是我的今天" : feedback || "補充了一點差異",
-      time: formatTime(new Date().toISOString()),
-    });
     setNotionMessage(formatNotionMessage("Daily Summary", data.notion));
   }
 
@@ -365,6 +304,7 @@ export function SugarExperience() {
       <section className="sugar-hero" aria-label="SUGAR day view">
         <div className="hero-copy">
           <p className="eyebrow">Human-in-the-Loop Data Enabled Object</p>
+          <h1 className="sr-only">SUGAR</h1>
           <Image
             className="sugar-logo"
             src="/brand/sugar-logo.svg"
@@ -493,27 +433,63 @@ export function SugarExperience() {
           </div>
         </div>
 
-        <div className="panel timeline-panel">
+        <div className="panel sound-flow-panel">
           <div className="panel-heading">
-            <span>時間軸</span>
-            <span>{timeline.length}</span>
+            <span>聲音流</span>
+            <span>{soundFlow.length}</span>
           </div>
-          <ol className="timeline-list">
-            {timeline.length === 0 ? (
-              <li className="empty-line">今天還很柔軟，尚未留下痕跡。</li>
+          <div className="sound-flow-copy">
+            <p>聲音從左邊慢慢長出來，最後被你收成一張糖紙。</p>
+            <button
+              className="sugar-button primary"
+              type="button"
+              disabled={soundFlow.length === 0}
+              onClick={() => setIsReflectionUnlocked(true)}
+              data-testid="unlock-reflection"
+            >
+              <Gift size={18} />
+              <span>把今日聲音包成糖紙</span>
+            </button>
+          </div>
+          <div className="sound-flow" aria-label="聲音時間軸視覺化">
+            {soundFlow.length === 0 ? (
+              <div className="sound-flow-empty">今天還很柔軟，尚未留下痕跡。</div>
             ) : (
-              timeline.map((item) => (
-                <li className={`timeline-item ${item.kind}`} key={item.id}>
-                  <time>{item.time}</time>
-                  <span>{item.title}</span>
-                  <p>{item.detail}</p>
-                </li>
+              soundFlow.map((log, index) => (
+                <button
+                  className="sound-segment"
+                  key={`${log.timestamp}-${index}`}
+                  type="button"
+                  onClick={() => setIsReflectionUnlocked(true)}
+                  style={
+                    {
+                      "--segment-color": soundLabelColors[log.label],
+                      "--segment-grow": Math.max(1, Math.round(log.durationSeconds)),
+                      "--segment-delay": `${index * 120}ms`,
+                    } as CSSProperties
+                  }
+                  title={`${formatTime(log.timestamp)} ${soundLabelCopy[log.label]}`}
+                >
+                  <span className="sound-pulse" />
+                </button>
               ))
             )}
-          </ol>
+          </div>
+          <div className="sound-flow-labels" aria-label="最近的聲音">
+            {recentSoundLabels.length === 0 ? (
+              <span>等待第一段聲音</span>
+            ) : (
+              recentSoundLabels.map((log) => (
+                <span key={log.timestamp}>
+                  {formatTime(log.timestamp)} · {soundLabelCopy[log.label]}
+                </span>
+              ))
+            )}
+          </div>
         </div>
       </section>
 
+      {isReflectionUnlocked ? (
       <section className="reflection-band" aria-label="daily reflection">
         <div className="reflection-copy">
           <p className="eyebrow">Data → Interpretation → Reflection</p>
@@ -539,7 +515,10 @@ export function SugarExperience() {
             className="wrapped-candy"
             type="button"
             disabled={!summary}
-            onClick={() => setIsCandyOpen(true)}
+            onClick={() => {
+              setIsCandyOpen(true);
+              setNoteDraft(summary?.correctedSummary ?? summary?.aiSummary ?? "");
+            }}
             aria-label="打開今日糖果"
             data-testid="open-candy"
           >
@@ -551,54 +530,38 @@ export function SugarExperience() {
           {summary && isCandyOpen ? (
             <div className="summary-note" data-testid="summary-note">
               <p className="flavor">{summary.flavor.name}</p>
-              <p>{summary.aiSummary}</p>
+              <textarea
+                value={noteDraft}
+                onChange={(event) => setNoteDraft(event.target.value)}
+                aria-label="今日紙條內容"
+                data-testid="feedback-text"
+              />
               <span>{summary.flavor.note}</span>
+              <div className="note-actions">
+                <button
+                  className="sugar-button primary"
+                  type="button"
+                  onClick={() => saveNote(true)}
+                  data-testid="accept-summary"
+                >
+                  <Check size={18} />
+                  <span>確認紙條</span>
+                </button>
+                <button
+                  className="sugar-button"
+                  type="button"
+                  onClick={() => saveNote(false)}
+                  data-testid="correct-summary"
+                >
+                  <Send size={18} />
+                  <span>保存紙條</span>
+                </button>
+              </div>
             </div>
           ) : null}
         </div>
       </section>
-
-      <section className="feedback-band" aria-label="human correction loop">
-        <div className="feedback-text">
-          <p className="eyebrow">Correction → Evolution</p>
-          <h2>這是你的今天嗎？</h2>
-        </div>
-        <div className="feedback-controls">
-          <textarea
-            value={feedback}
-            onChange={(event) => setFeedback(event.target.value)}
-            placeholder="不是，讓我補充..."
-            aria-label="修正回饋"
-            data-testid="feedback-text"
-          />
-          <div className="button-cluster">
-            <button
-              className="sugar-button primary"
-              type="button"
-              disabled={!summary}
-              onClick={() => submitFeedback(true)}
-              data-testid="accept-summary"
-            >
-              <Check size={18} />
-              <span>是</span>
-            </button>
-            <button
-              className="sugar-button"
-              type="button"
-              disabled={!summary}
-              onClick={() => submitFeedback(false)}
-              data-testid="correct-summary"
-            >
-              <X size={18} />
-              <span>送出修正</span>
-            </button>
-            <button className="sugar-button ghost" type="button" disabled={!summary}>
-              <Send size={18} />
-              <span>保存今日</span>
-            </button>
-          </div>
-        </div>
-      </section>
+      ) : null}
     </main>
   );
 }
