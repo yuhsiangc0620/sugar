@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   Candy,
   Check,
@@ -364,7 +365,14 @@ export function SugarExperience() {
       <section className="sugar-hero" aria-label="SUGAR day view">
         <div className="hero-copy">
           <p className="eyebrow">Human-in-the-Loop Data Enabled Object</p>
-          <h1>SUGAR</h1>
+          <Image
+            className="sugar-logo"
+            src="/brand/sugar-logo.svg"
+            alt="SUGAR"
+            width={1920}
+            height={1080}
+            priority
+          />
           <p className="lead">一台會記住你一天的糖果機。</p>
         </div>
 

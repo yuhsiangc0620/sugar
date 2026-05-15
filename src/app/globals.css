@@ -81,12 +81,15 @@ button:disabled {
   padding: 58px 0 28px;
 }
 
-.hero-copy h1 {
-  margin: 8px 0 10px;
-  font-size: clamp(5rem, 14vw, 13rem);
-  line-height: 0.84;
-  color: var(--deep-blue);
-  font-weight: 760;
+.sugar-logo {
+  display: block;
+  width: min(620px, 76vw);
+  height: auto;
+  margin: 10px 0 16px;
+  filter:
+    drop-shadow(0 10px 22px rgba(36, 48, 77, 0.12))
+    brightness(0) saturate(100%) invert(16%) sepia(22%) saturate(1445%) hue-rotate(187deg)
+    brightness(94%) contrast(91%);
 }
 
 .eyebrow {
@@ -587,8 +590,8 @@ button:disabled {
     width: min(100vw - 20px, 1180px);
   }
 
-  .hero-copy h1 {
-    font-size: clamp(4.2rem, 24vw, 7rem);
+  .sugar-logo {
+    width: min(460px, 84vw);
   }
 
   .metric-row,

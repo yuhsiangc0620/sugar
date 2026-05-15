@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "SUGAR",
   description: "A human-in-the-loop data enabled candy machine.",
+  icons: {
+    icon: "/brand/sugar-logo.svg",
+  },
 };
 
 export default function RootLayout({
