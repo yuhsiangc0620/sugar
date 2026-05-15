@@ -42,14 +42,16 @@ export async function POST(request: Request) {
     correctedSummary,
   });
 
-  try {
-    await writeDailySummaryToNotion(summary);
-  } catch (error) {
-    console.warn("SUGAR notion feedback write failed", error);
+  const notion = await writeDailySummaryToNotion(summary);
+
+  if (!notion.ok) {
+    console.warn("SUGAR notion feedback write failed", notion);
   }
 
   return NextResponse.json({
     correctedSummary,
     memoryUpdated: Boolean(!parsed.data.accepted && parsed.data.feedback?.trim()),
+    persistedToNotion: notion.ok,
+    notion,
   });
 }

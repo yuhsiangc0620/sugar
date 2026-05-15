@@ -3,6 +3,7 @@
 import {
   Candy,
   Check,
+  Database,
   Gift,
   Mic,
   MicOff,
@@ -42,10 +43,25 @@ type SnapshotResponse = {
   recentCandyEvents: CandyEvent[];
   dailySummary: DailySummary | null;
   notion: {
-    soundLogs: boolean;
-    candyEvents: boolean;
-    dailySummary: boolean;
+    soundLogs: NotionTargetStatus;
+    candyEvents: NotionTargetStatus;
+    dailySummary: NotionTargetStatus;
   };
+};
+
+type NotionTargetStatus = {
+  hasToken: boolean;
+  hasDataSourceId: boolean;
+  dataSourceIdPrefix: string | null;
+};
+
+type NotionWriteResponse = {
+  ok: boolean;
+  skipped: boolean;
+  reason?: string;
+  error?: string;
+  code?: string;
+  target: NotionTargetStatus;
 };
 
 const demoSequence: SoundLabel[] = [
@@ -80,6 +96,8 @@ export function SugarExperience() {
   const [isCandyOpen, setIsCandyOpen] = useState(false);
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   const [summaryStatus, setSummaryStatus] = useState<string | null>(null);
+  const [notionStatus, setNotionStatus] = useState<SnapshotResponse["notion"] | null>(null);
+  const [notionMessage, setNotionMessage] = useState<string>("尚未寫入 Notion");
   const [demoIndex, setDemoIndex] = useState(0);
 
   const aggregate = useMemo(
@@ -138,11 +156,13 @@ export function SugarExperience() {
         time: formatTime(timestamp),
       });
 
-      await fetch("/api/sound-log", {
+      const response = await fetch("/api/sound-log", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(log),
       });
+      const data = (await response.json()) as { notion?: NotionWriteResponse };
+      setNotionMessage(formatNotionMessage("Sound Logs", data.notion));
     },
     [pushTimeline, sessionId],
   );
@@ -171,6 +191,7 @@ export function SugarExperience() {
       setSoundLogs((current) => (current.length > 0 ? current : snapshot.recentSoundLogs));
       setCandyEvents((current) => (current.length > 0 ? current : snapshot.recentCandyEvents));
       setFlavor(snapshot.flavor);
+      setNotionStatus(snapshot.notion);
 
       if (snapshot.dailySummary) {
         setSummary(snapshot.dailySummary);
@@ -233,7 +254,7 @@ export function SugarExperience() {
       time: formatTime(timestamp),
     });
 
-    await fetch("/api/device/event", {
+    const response = await fetch("/api/device/event", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -243,6 +264,8 @@ export function SugarExperience() {
         user_name: userName,
       }),
     });
+    const data = (await response.json()) as { notion?: NotionWriteResponse };
+    setNotionMessage(formatNotionMessage("Candy Events", data.notion));
   }
 
   async function runDailySummary() {
@@ -266,6 +289,7 @@ export function SugarExperience() {
         aiSummary: string;
         aggregate: DailyAggregate;
         flavor: CandyFlavor;
+        notion?: NotionWriteResponse;
       };
       const nextSummary: DailySummary = {
         date: data.date,
@@ -283,6 +307,7 @@ export function SugarExperience() {
         detail: data.flavor.name,
         time: formatTime(new Date().toISOString()),
       });
+      setNotionMessage(formatNotionMessage("Daily Summary", data.notion));
     } catch {
       setSummaryStatus("今晚的糖果暫時沒有成形。");
     } finally {
@@ -314,6 +339,7 @@ export function SugarExperience() {
     const data = (await response.json()) as {
       correctedSummary: string;
       memoryUpdated: boolean;
+      notion?: NotionWriteResponse;
     };
 
     setSummary({
@@ -329,6 +355,7 @@ export function SugarExperience() {
       detail: accepted ? "這是我的今天" : feedback || "補充了一點差異",
       time: formatTime(new Date().toISOString()),
     });
+    setNotionMessage(formatNotionMessage("Daily Summary", data.notion));
   }
 
   return (
@@ -411,6 +438,17 @@ export function SugarExperience() {
             </button>
           </div>
           {audio.error ? <p className="soft-note">{audio.error}</p> : null}
+
+          <div className="notion-status" aria-label="Notion sync status">
+            <Database size={18} aria-hidden="true" />
+            <div>
+              <span>{notionMessage}</span>
+              <p>
+                token {notionStatus?.soundLogs.hasToken ? "ready" : "missing"} · sound db{" "}
+                {notionStatus?.soundLogs.hasDataSourceId ? "ready" : "missing"}
+              </p>
+            </div>
+          </div>
 
           <div className="button-cluster candy-controls">
             <button
@@ -579,6 +617,18 @@ function createSessionId(): string {
   const next = `sugar-${crypto.randomUUID()}`;
   window.localStorage.setItem("sugar-session-id", next);
   return next;
+}
+
+function formatNotionMessage(label: string, notion?: NotionWriteResponse): string {
+  if (!notion) {
+    return `${label} 寫入狀態未知`;
+  }
+
+  return notion.ok
+    ? `${label} 已寫入 Notion`
+    : notion.skipped
+      ? `${label} 未寫入：${notion.reason}`
+      : `${label} 寫入失敗：${notion.code ?? notion.error ?? "unknown"}`;
 }
 
 function formatTime(timestamp: string): string {

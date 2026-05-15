@@ -5,6 +5,16 @@ import type { CandyEvent, DailySummary, SoundLog } from "./types";
 
 type CreatePageArgs = Parameters<Client["pages"]["create"]>[0];
 type CreateDatabaseArgs = Parameters<Client["databases"]["create"]>[0];
+export type NotionWriteResult =
+  | { ok: true; skipped: false; target: NotionTargetStatus }
+  | { ok: false; skipped: true; target: NotionTargetStatus; reason: string }
+  | { ok: false; skipped: false; target: NotionTargetStatus; error: string; code?: string };
+
+type NotionTargetStatus = {
+  hasToken: boolean;
+  hasDataSourceId: boolean;
+  dataSourceIdPrefix: string | null;
+};
 
 let notionClient: Client | null = null;
 
@@ -22,48 +32,84 @@ export function getNotionClient(): Client | null {
 
 export function getNotionStatus() {
   return {
-    soundLogs: Boolean(process.env.NOTION_TOKEN && process.env.NOTION_SOUND_LOGS_DATA_SOURCE_ID),
-    candyEvents: Boolean(process.env.NOTION_TOKEN && process.env.NOTION_CANDY_EVENTS_DATA_SOURCE_ID),
-    dailySummary: Boolean(
-      process.env.NOTION_TOKEN && process.env.NOTION_DAILY_SUMMARY_DATA_SOURCE_ID,
-    ),
+    soundLogs: getNotionTargetStatus(process.env.NOTION_SOUND_LOGS_DATA_SOURCE_ID),
+    candyEvents: getNotionTargetStatus(process.env.NOTION_CANDY_EVENTS_DATA_SOURCE_ID),
+    dailySummary: getNotionTargetStatus(process.env.NOTION_DAILY_SUMMARY_DATA_SOURCE_ID),
   };
 }
 
-export async function writeSoundLogToNotion(log: SoundLog): Promise<boolean> {
+export async function writeSoundLogToNotion(log: SoundLog): Promise<NotionWriteResult> {
   const client = getNotionClient();
   const dataSourceId = process.env.NOTION_SOUND_LOGS_DATA_SOURCE_ID;
+  const target = getNotionTargetStatus(dataSourceId);
 
   if (!client || !dataSourceId) {
-    return false;
+    return {
+      ok: false,
+      skipped: true,
+      target,
+      reason: !client ? "Missing NOTION_TOKEN" : "Missing NOTION_SOUND_LOGS_DATA_SOURCE_ID",
+    };
   }
 
-  await client.pages.create(soundLogPage(dataSourceId, log));
-  return true;
+  try {
+    await client.pages.create(soundLogPage(dataSourceId, log));
+    return { ok: true, skipped: false, target };
+  } catch (error) {
+    return notionWriteError(target, error);
+  }
 }
 
-export async function writeCandyEventToNotion(event: CandyEvent): Promise<boolean> {
+export async function writeCandyEventToNotion(event: CandyEvent): Promise<NotionWriteResult> {
   const client = getNotionClient();
   const dataSourceId = process.env.NOTION_CANDY_EVENTS_DATA_SOURCE_ID;
+  const target = getNotionTargetStatus(dataSourceId);
 
   if (!client || !dataSourceId) {
-    return false;
+    return {
+      ok: false,
+      skipped: true,
+      target,
+      reason: !client ? "Missing NOTION_TOKEN" : "Missing NOTION_CANDY_EVENTS_DATA_SOURCE_ID",
+    };
   }
 
-  await client.pages.create(candyEventPage(dataSourceId, event));
-  return true;
+  try {
+    await client.pages.create(candyEventPage(dataSourceId, event));
+    return { ok: true, skipped: false, target };
+  } catch (error) {
+    return notionWriteError(target, error);
+  }
 }
 
-export async function writeDailySummaryToNotion(summary: DailySummary): Promise<boolean> {
+export async function writeDailySummaryToNotion(summary: DailySummary): Promise<NotionWriteResult> {
   const client = getNotionClient();
   const dataSourceId = process.env.NOTION_DAILY_SUMMARY_DATA_SOURCE_ID;
+  const target = getNotionTargetStatus(dataSourceId);
 
   if (!client || !dataSourceId) {
-    return false;
+    return {
+      ok: false,
+      skipped: true,
+      target,
+      reason: !client ? "Missing NOTION_TOKEN" : "Missing NOTION_DAILY_SUMMARY_DATA_SOURCE_ID",
+    };
   }
 
-  await client.pages.create(dailySummaryPage(dataSourceId, summary));
-  return true;
+  try {
+    await client.pages.create(dailySummaryPage(dataSourceId, summary));
+    return { ok: true, skipped: false, target };
+  } catch (error) {
+    return notionWriteError(target, error);
+  }
+}
+
+export function getNotionTargetStatus(dataSourceId?: string): NotionTargetStatus {
+  return {
+    hasToken: Boolean(process.env.NOTION_TOKEN),
+    hasDataSourceId: Boolean(dataSourceId),
+    dataSourceIdPrefix: dataSourceId ? `${dataSourceId.slice(0, 8)}...` : null,
+  };
 }
 
 export function soundLogPage(dataSourceId: string, log: SoundLog): CreatePageArgs {
@@ -378,6 +424,21 @@ function option(
   color: "blue" | "gray" | "green" | "orange" | "pink" | "purple" | "red" | "yellow",
 ) {
   return { name, color };
+}
+
+function notionWriteError(target: NotionTargetStatus, error: unknown): NotionWriteResult {
+  const detail =
+    typeof error === "object" && error !== null
+      ? (error as { message?: unknown; code?: unknown })
+      : {};
+
+  return {
+    ok: false,
+    skipped: false,
+    target,
+    error: typeof detail.message === "string" ? detail.message : "Unknown Notion write error",
+    code: typeof detail.code === "string" ? detail.code : undefined,
+  };
 }
 
 function soundLabelColor(label: SoundLabel) {

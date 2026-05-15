@@ -17,13 +17,11 @@ export async function POST(request: Request) {
   }
 
   const log = rememberSoundLog(parsed.data);
-  let persistedToNotion = false;
+  const notion = await writeSoundLogToNotion(log);
 
-  try {
-    persistedToNotion = await writeSoundLogToNotion(log);
-  } catch (error) {
-    console.warn("SUGAR notion sound-log write failed", error);
+  if (!notion.ok) {
+    console.warn("SUGAR notion sound-log write failed", notion);
   }
 
-  return NextResponse.json({ log, persistedToNotion }, { status: 201 });
+  return NextResponse.json({ log, persistedToNotion: notion.ok, notion }, { status: 201 });
 }

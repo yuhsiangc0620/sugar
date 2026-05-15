@@ -53,11 +53,18 @@ export async function POST(request: Request) {
     flavor,
   });
 
-  try {
-    await writeDailySummaryToNotion(summary);
-  } catch (error) {
-    console.warn("SUGAR notion daily-summary write failed", error);
+  const notion = await writeDailySummaryToNotion(summary);
+
+  if (!notion.ok) {
+    console.warn("SUGAR notion daily-summary write failed", notion);
   }
 
-  return NextResponse.json({ date: summary.date, aiSummary, aggregate, flavor });
+  return NextResponse.json({
+    date: summary.date,
+    aiSummary,
+    aggregate,
+    flavor,
+    persistedToNotion: notion.ok,
+    notion,
+  });
 }

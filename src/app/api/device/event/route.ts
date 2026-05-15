@@ -22,12 +22,10 @@ export async function POST(request: Request) {
     timestamp: parsed.data.timestamp ?? new Date().toISOString(),
     userName: parsed.data.user_name ?? "sugar-user",
   });
-  let persistedToNotion = false;
+  const notion = await writeCandyEventToNotion(event);
 
-  try {
-    persistedToNotion = await writeCandyEventToNotion(event);
-  } catch (error) {
-    console.warn("SUGAR notion candy-event write failed", error);
+  if (!notion.ok) {
+    console.warn("SUGAR notion candy-event write failed", notion);
   }
 
   return NextResponse.json(
@@ -38,7 +36,8 @@ export async function POST(request: Request) {
         timestamp: event.timestamp,
         user_name: event.userName,
       },
-      persistedToNotion,
+      persistedToNotion: notion.ok,
+      notion,
     },
     { status: 201 },
   );
