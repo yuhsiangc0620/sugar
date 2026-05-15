@@ -83,6 +83,7 @@ export function soundLogPage(dataSourceId: string, log: SoundLog): CreatePageArg
       raw_category: richText(log.rawLabel ?? log.label),
       confidence: { number: log.confidence },
       session_id: richText(log.sessionId),
+      user_name: richText(log.userName),
       source: { select: { name: log.source } },
     },
   };
@@ -96,6 +97,7 @@ export function candyEventPage(dataSourceId: string, event: CandyEvent): CreateP
       time: { date: { start: event.timestamp } },
       type: { select: { name: event.type } },
       device_id: richText(event.deviceId),
+      user_name: richText(event.userName),
     },
   };
 }
@@ -106,6 +108,7 @@ export function dailySummaryPage(dataSourceId: string, summary: DailySummary): C
     properties: {
       Name: title(`SUGAR ${summary.date}`),
       date: { date: { start: summary.date } },
+      user_name: richText(summary.userName),
       ai_summary: richText(summary.aiSummary),
       user_feedback: richText(summary.userFeedback ?? ""),
       corrected_summary: richText(summary.correctedSummary ?? ""),
@@ -136,6 +139,7 @@ export function soundLogsDatabase(parentPageId: string): CreateDatabaseArgs {
         raw_category: { rich_text: {} },
         confidence: { number: { format: "percent" } },
         session_id: { rich_text: {} },
+        user_name: { rich_text: {} },
         source: {
           select: {
             options: [
@@ -165,6 +169,7 @@ export function candyEventsDatabase(parentPageId: string): CreateDatabaseArgs {
           },
         },
         device_id: { rich_text: {} },
+        user_name: { rich_text: {} },
       },
     },
   };
@@ -179,6 +184,7 @@ export function dailySummaryDatabase(parentPageId: string): CreateDatabaseArgs {
       properties: {
         Name: { title: {} },
         date: { date: {} },
+        user_name: { rich_text: {} },
         ai_summary: { rich_text: {} },
         user_feedback: { rich_text: {} },
         corrected_summary: { rich_text: {} },
@@ -249,6 +255,7 @@ function notionPageToSoundLog(page: unknown): SoundLog[] {
   const sessionId = readRichText(properties.session_id);
   const durationSeconds = readNumber(properties.duration_seconds) ?? 5;
   const rawLabel = readRichText(properties.raw_category) ?? undefined;
+  const userName = readRichText(properties.user_name) ?? "sugar-user";
   const source = readSelect(properties.source);
 
   if (!timestamp || !label || confidence === null || !sessionId) {
@@ -264,6 +271,7 @@ function notionPageToSoundLog(page: unknown): SoundLog[] {
       rawLabel,
       confidence,
       sessionId,
+      userName,
       source: source === "demo" || source === "device_api" ? source : "browser_mediapipe",
     },
   ];
@@ -274,12 +282,13 @@ function notionPageToCandyEvent(page: unknown): CandyEvent[] {
   const timestamp = readDate(properties.time);
   const type = readSelect(properties.type);
   const deviceId = readRichText(properties.device_id);
+  const userName = readRichText(properties.user_name) ?? "sugar-user";
 
   if (!timestamp || (type !== "dispensed" && type !== "returned") || !deviceId) {
     return [];
   }
 
-  return [{ timestamp, type, deviceId }];
+  return [{ timestamp, type, deviceId, userName }];
 }
 
 function getProperties(page: unknown): Record<string, unknown> {

@@ -16,6 +16,7 @@ describe("POST /api/sound-log", () => {
           label: "keyboard_typing",
           confidence: 0.74,
           sessionId: "session-test",
+          userName: "test-user",
         }),
       }),
     );
@@ -26,6 +27,7 @@ describe("POST /api/sound-log", () => {
     expect(getMemoryStore().soundLogs).toHaveLength(1);
     expect(getMemoryStore().soundLogs[0]).toMatchObject({
       durationSeconds: 5,
+      userName: "test-user",
       source: "browser_mediapipe",
     });
   });

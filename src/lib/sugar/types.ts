@@ -32,6 +32,7 @@ export type SoundLog = {
   rawLabel?: string;
   confidence: number;
   sessionId: string;
+  userName: string;
   source: SoundLogSource;
 };
 
@@ -39,6 +40,7 @@ export type CandyEvent = {
   timestamp: string;
   type: CandyEventType;
   deviceId: string;
+  userName: string;
 };
 
 export type SoundProportion = {
@@ -62,6 +64,7 @@ export type DailyAggregate = {
 
 export type DailySummary = {
   date: string;
+  userName: string;
   aiSummary: string;
   userFeedback?: string;
   correctedSummary?: string;

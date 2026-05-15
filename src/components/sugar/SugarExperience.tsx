@@ -62,6 +62,7 @@ const demoSequence: SoundLabel[] = [
 ];
 
 const deviceId = "sugar-demo-device";
+const userName = process.env.NEXT_PUBLIC_SUGAR_USER_NAME || "sugar-user";
 
 export function SugarExperience() {
   const [date] = useState(() => getTaipeiDate());
@@ -123,6 +124,7 @@ export function SugarExperience() {
         rawLabel: options.rawLabel ?? label,
         confidence,
         sessionId,
+        userName,
         source: options.source ?? "demo",
       };
 
@@ -220,6 +222,7 @@ export function SugarExperience() {
       type,
       timestamp,
       deviceId,
+      userName,
     };
 
     setCandyEvents((current) => [...current, event]);
@@ -237,6 +240,7 @@ export function SugarExperience() {
         device_id: deviceId,
         event_type: type,
         timestamp,
+        user_name: userName,
       }),
     });
   }
@@ -250,7 +254,7 @@ export function SugarExperience() {
       const response = await fetch("/api/daily-summary/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ date }),
+        body: JSON.stringify({ date, userName }),
       });
 
       if (!response.ok) {
@@ -265,6 +269,7 @@ export function SugarExperience() {
       };
       const nextSummary: DailySummary = {
         date: data.date,
+        userName,
         aiSummary: data.aiSummary,
         aggregate: data.aggregate,
         flavor: data.flavor,
@@ -295,6 +300,7 @@ export function SugarExperience() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         date,
+        userName,
         accepted,
         feedback: accepted ? undefined : feedback,
       }),

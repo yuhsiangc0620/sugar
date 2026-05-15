@@ -40,6 +40,7 @@ Use one Notion database for derived sound windows. Each row represents one local
 | `raw_category` | text | Top MediaPipe/YAMNet category name |
 | `confidence` | percent number | Top category confidence |
 | `session_id` | text | Browser session identifier |
+| `user_name` | text | User label, usually from `NEXT_PUBLIC_SUGAR_USER_NAME` |
 | `source` | select | `browser_mediapipe`, `demo`, or `device_api` |
 
 ## API Payload
@@ -53,6 +54,7 @@ Use one Notion database for derived sound windows. Each row represents one local
   "rawLabel": "Computer keyboard",
   "confidence": 0.74,
   "sessionId": "sugar-session-id",
+  "userName": "yuhsiang",
   "source": "browser_mediapipe"
 }
 ```

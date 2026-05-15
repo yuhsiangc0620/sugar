@@ -12,6 +12,7 @@ describe("Notion payload builders", () => {
       rawLabel: "Speech",
       confidence: 0.81,
       sessionId: "session-test",
+      userName: "test-user",
       source: "browser_mediapipe",
     });
 
@@ -26,10 +27,12 @@ describe("Notion payload builders", () => {
       timestamp: "2026-05-15T01:00:00.000+08:00",
       type: "returned",
       deviceId: "device-test",
+      userName: "test-user",
     });
     const aggregate = aggregateDay("2026-05-15", [], []);
     const summaryPayload = dailySummaryPage("ds-daily", {
       date: "2026-05-15",
+      userName: "test-user",
       aiSummary: "今天的理解很柔軟。",
       aggregate,
       flavor: pickFlavor(aggregate),

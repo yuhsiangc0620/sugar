@@ -28,6 +28,14 @@ OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-5-mini
 ```
 
+## Optional User Label
+
+This is written to Notion as `user_name` on sound logs, candy events, and daily summaries. It is public because it is read by the browser.
+
+```bash
+NEXT_PUBLIC_SUGAR_USER_NAME=yuhsiang
+```
+
 ## Recommended Flow
 
 1. Create a Notion integration and copy its internal integration secret into `NOTION_TOKEN`.

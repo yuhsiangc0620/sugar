@@ -47,6 +47,7 @@ export async function POST(request: Request) {
   const aiSummary = await generateDailyInterpretation(aggregate, getPromptMemory());
   const summary = rememberDailySummary({
     date: parsed.data.date,
+    userName: parsed.data.userName,
     aiSummary,
     aggregate,
     flavor,

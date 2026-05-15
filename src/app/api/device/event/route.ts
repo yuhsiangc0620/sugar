@@ -20,6 +20,7 @@ export async function POST(request: Request) {
     deviceId: parsed.data.device_id,
     type: parsed.data.event_type,
     timestamp: parsed.data.timestamp ?? new Date().toISOString(),
+    userName: parsed.data.user_name ?? "sugar-user",
   });
   let persistedToNotion = false;
 
@@ -35,6 +36,7 @@ export async function POST(request: Request) {
         device_id: event.deviceId,
         event_type: event.type,
         timestamp: event.timestamp,
+        user_name: event.userName,
       },
       persistedToNotion,
     },

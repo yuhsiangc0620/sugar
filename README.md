@@ -31,6 +31,7 @@ The app works without Notion or OpenAI credentials by using in-memory storage an
   "rawLabel": "Computer keyboard",
   "confidence": 0.74,
   "sessionId": "sugar-session-id",
+  "userName": "yuhsiang",
   "source": "browser_mediapipe"
 }
 ```

@@ -53,10 +53,11 @@ function sound(timestamp: string, label: SoundLog["label"]): SoundLog {
     rawLabel: label,
     confidence: 0.8,
     sessionId: "session-test",
+    userName: "test-user",
     source: "demo",
   };
 }
 
 function candy(timestamp: string, type: CandyEvent["type"]): CandyEvent {
-  return { timestamp, type, deviceId: "device-test" };
+  return { timestamp, type, deviceId: "device-test", userName: "test-user" };
 }
