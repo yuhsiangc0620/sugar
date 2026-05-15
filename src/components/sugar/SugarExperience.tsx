@@ -11,7 +11,6 @@ import {
   RotateCcw,
   Send,
   Sparkles,
-  Volume2,
 } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -300,34 +299,20 @@ export function SugarExperience() {
   }
 
   return (
-    <main className="sugar-shell">
-      <section className="sugar-hero" aria-label="SUGAR day view">
-        <div className="hero-copy">
-          <p className="eyebrow">Human-in-the-Loop Data Enabled Object</p>
-          <h1 className="sr-only">SUGAR</h1>
-          <Image
-            className="sugar-logo"
-            src="/brand/sugar-logo.svg"
-            alt="SUGAR"
-            width={1920}
-            height={1080}
-            priority
-          />
-          <p className="lead">一台會記住你一天的糖果機。</p>
-        </div>
-
-          <div
-          className="sound-orbit"
-          style={{ "--blob-color": soundLabelColors[activeLabel] } as CSSProperties}
-          aria-label={`目前聲音：${soundLabelCopy[activeLabel]}`}
-        >
-          <div className="sound-blob">
-            <Volume2 size={28} aria-hidden="true" />
-            <span>{soundLabelCopy[activeLabel]}</span>
-          </div>
-          <div className="sound-ring sound-ring-one" />
-          <div className="sound-ring sound-ring-two" />
-        </div>
+    <main
+      className="sugar-shell"
+      style={{ "--ambient-color": soundLabelColors[activeLabel] } as CSSProperties}
+    >
+      <section className="top-mark" aria-label="SUGAR">
+        <h1 className="sr-only">SUGAR</h1>
+        <Image
+          className="sugar-logo"
+          src="/brand/sugar-logo.svg"
+          alt="SUGAR"
+          width={1920}
+          height={1080}
+          priority
+        />
       </section>
 
       <section className="sound-flow-stage" aria-label="聲音流核心">
